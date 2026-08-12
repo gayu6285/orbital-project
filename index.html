@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Satellite Orbital Risk Dashboard</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.45),
+          rgba(0, 0, 0, 0.45)),
+        url("satellite-x.jpg");
+
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+
+      min-height: 100vh;
+      margin: 0;
+      padding: 30px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      text-shadow: 0 2px 10px black;
+    }
+
+    .card {
+      background: rgba(5, 15, 30, 0.88);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      margin-top: 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .result {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .probability {
+      margin-top: 20px;
+    }
+
+    .bar {
+      margin: 10px 0;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .fill {
+      padding: 8px;
+      color: white;
+      text-align: right;
+    }
+
+    .low {
+      background: green;
+    }
+
+    .medium {
+      background: orange;
+    }
+
+    .high {
+      background: red;
+    }
+
+    #error {
+      color: red;
+      margin-top: 15px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>🛰️ Satellite Orbital Risk Dashboard</h1>
+
+    <div class="card">
+
+      <h2>Satellite & Space Weather Input</h2>
+
+      <div class="grid">
+
+        <div>
+          <label>Satellite</label>
+
+          <select id="Satellite">
+            <option>AQUA</option>
+            <option>ICESAT2</option>
+            <option>LANDSAT8</option>
+            <option>SENTINEL2A</option>
+            <option>SWARMA</option>
+            <option>TERRA</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Mean Motion</label>
+          <input id="MEAN_MOTION" type="number" value="14.5712">
+        </div>
+
+        <div>
+          <label>Eccentricity</label>
+          <input id="ECCENTRICITY" type="number" value="0.00013">
+        </div>
+
+        <div>
+          <label>Inclination</label>
+          <input id="INCLINATION" type="number" value="98.224">
+        </div>
+
+        <div>
+          <label>BSTAR</label>
+          <input id="BSTAR" type="number" value="0.00015">
+        </div>
+
+        <div>
+          <label>Ap Index</label>
+          <input id="Ap" type="number" value="10">
+        </div>
+
+        <div>
+          <label>Sunspot Number</label>
+          <input id="SN" type="number" value="80">
+        </div>
+
+        <div>
+          <label>F10.7 Observed</label>
+          <input id="F107obs" type="number" value="120">
+        </div>
+
+        <div>
+          <label>F10.7 Adjusted</label>
+          <input id="F107adj" type="number" value="123">
+        </div>
+
+        <div>
+          <label>Semimajor Axis (km)</label>
+          <input id="SEMIMAJOR_AXIS" type="number" value="7080.7">
+        </div>
+
+      </div>
+
+      <button onclick="predictRisk()">
+        Predict Orbital Risk
+      </button>
+
+      <div id="error"></div>
+
+    </div>
+
+
+    <div class="card" id="resultCard" style="display:none">
+
+      <h2>Prediction Result</h2>
+
+      <div class="result" id="riskResult"></div>
+
+      <div class="probability">
+
+        <h3>Risk Probability</h3>
+
+        <p>Low</p>
+        <div class="bar">
+          <div id="lowBar" class="fill low">0%</div>
+        </div>
+
+        <p>Medium</p>
+        <div class="bar">
+          <div id="mediumBar" class="fill medium">0%</div>
+        </div>
+
+        <p>High</p>
+        <div class="bar">
+          <div id="highBar" class="fill high">0%</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    async function predictRisk() {
+
+      document.getElementById("error").innerText = "";
+
+      const data = {
+
+        Satellite:
+          document.getElementById("Satellite").value,
+
+        MEAN_MOTION:
+          Number(document.getElementById("MEAN_MOTION").value),
+
+        ECCENTRICITY:
+          Number(document.getElementById("ECCENTRICITY").value),
+
+        INCLINATION:
+          Number(document.getElementById("INCLINATION").value),
+
+        BSTAR:
+          Number(document.getElementById("BSTAR").value),
+
+        Ap:
+          Number(document.getElementById("Ap").value),
+
+        SN:
+          Number(document.getElementById("SN").value),
+
+        F107obs:
+          Number(document.getElementById("F107obs").value),
+
+        F107adj:
+          Number(document.getElementById("F107adj").value),
+
+        SEMIMAJOR_AXIS:
+          Number(document.getElementById("SEMIMAJOR_AXIS").value)
+      };
+
+
+      try {
+
+        const response = await fetch(
+          "http://127.0.0.1:8000/predict",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify(data)
+          }
+        );
+
+
+        const result = await response.json();
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            result.detail || "Prediction failed"
+          );
+
+        }
+
+
+        document.getElementById("resultCard")
+          .style.display = "block";
+
+
+        document.getElementById("riskResult")
+          .innerText =
+          "Predicted Risk: " +
+          result.predicted_risk;
+
+
+        const low =
+          result.probabilities.Low;
+
+        const medium =
+          result.probabilities.Medium;
+
+        const high =
+          result.probabilities.High;
+
+
+        document.getElementById("lowBar").style.width =
+          low + "%";
+
+        document.getElementById("lowBar").innerText =
+          low + "%";
+
+
+        document.getElementById("mediumBar").style.width =
+          medium + "%";
+
+        document.getElementById("mediumBar").innerText =
+          medium + "%";
+
+
+        document.getElementById("highBar").style.width =
+          high + "%";
+
+        document.getElementById("highBar").innerText =
+          high + "%";
+
+      }
+
+      catch (error) {
+
+        document.getElementById("error").innerText =
+          "Error: " + error.message;
+
+      }
+
+    }
+
+  </script>
+
+</body>
+
+</html>
